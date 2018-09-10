@@ -6,7 +6,7 @@ pid = os.getpid()
 #text = ''
 dire = re.split(":", os.environ['PATH'])
 dire = dire[0]
-text = input(dire + " >")
+text = input(dire + "> ")
 while text!="q":
 
     os.write(1, ("About to fork (pid:%d)\n" % pid).encode())
@@ -23,10 +23,24 @@ while text!="q":
 
         #args = ["wc", "shell.py"]
         args = re.split(" ", text, 1)
+        print(args)
+        if args[0]=='>':
+            os.close(1)  # redirect child's stdout
+            sys.stdout = open(args[1], "w")
+            fd = sys.stdout.fileno()  # os.open("p4-output.txt", os.O_CREAT)
+            os.set_inheritable(fd, True)
+            os.write(2, ("Child: opened fd=%d for writing\n" % fd).encode())
+#            args = re.split(" ", input("/>"),1)
+
+        elif args[0]=='<':
+            os.close(0)  # redirect child's stdin
+            sys.stdin = open(args[1], "r")
+            fd = sys.stdin.fileno()  # os.open("p4-output.txt", os.O_CREAT)
+            os.set_inheritable(fd, True)
+            args = sys.stdin.read().split()
+            os.write(2, ("Child: opened fd=%d for writing\n" % fd).encode())
+
         for dir in re.split(":", os.environ['PATH']): # try each directory in the path
-            #dir = re.split(":", os.environ['PATH'])
-            #dir = dir[0]
-            #text = input("Next Command")
             program = "%s/%s" % (dir, args[0])
             #os.write(1, ("Child:  ...trying to exec %s\n" % program).encode())
             try:
@@ -43,4 +57,4 @@ while text!="q":
         childPidCode = os.wait()
         os.write(1, ("Parent: Child %d terminated with exit code %d\n" %
                      childPidCode).encode())
-        text = input(dire[0] + " >")
+        text = input(dire[0] + "> ")
