@@ -13,6 +13,16 @@ while cmd != "exit":
     inp = False
     text = cmd.split("|")
     #print(text)
+
+    if text[0].__contains__('cd'):
+        chnd = str.split(text[0])
+        cwd = ''
+        if chnd[1].startswith('.'):
+            cwd = os.getcwd()
+        path = cwd + '/' + chnd[1]
+        #print(path + "hello there")
+        os.chdir(path)
+        text[:] = []
     i = len(text)
     for p in range(i):
         time.sleep(1)
