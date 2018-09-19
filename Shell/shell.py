@@ -3,11 +3,16 @@
 import os, sys, re, time
 
 pid = os.getpid()
-try:
-    cmd = input(sys.ps1)
-except:
-    cmd = input("$ ")
 
+try:
+    sys.ps1 = os.environ.get('PS1')
+except AttributeError:
+    sys.ps1 = '$ '
+except:
+    sys.ps1 = '$ '
+if sys.ps1 is None :
+    sys.ps1 = '$ '
+cmd = input(sys.ps1)
 while cmd != "exit":
     r = -1
     w = -1
@@ -19,14 +24,15 @@ while cmd != "exit":
     if text[0].__contains__('cd'):
         chnd = str.split(text[0])
         cwd = ''
-        if chnd[1].startswith('.'):
-            cwd = os.getcwd()
-        path = cwd + '/' + chnd[1]
-        os.chdir(path)
-        text[:] = []
+        if len(chnd)>1:
+            if chnd[1].startswith('.'):
+                cwd = os.getcwd()
+            path = cwd + '/' + chnd[1]
+            os.chdir(path)
+            text[:] = []
     i = len(text)
     for p in range(i):
-        time.sleep(.1)
+        #time.sleep(.1)
         child = text[0]
         args = str.split(child)
         if len(text) > 1:
@@ -78,7 +84,10 @@ while cmd != "exit":
                     pass  # ...fail quietly
 
             sys.exit(1)  # terminate with error
-
+    #try:
+    #    os.read(0, 10)
+    #except:
+    #    sys.exit(1)
     for p in range(i):
         childPidCode = os.wait()
         try:
@@ -87,10 +96,6 @@ while cmd != "exit":
         except OSError:  # ...expected
             pass
     try:
-        try:
-            cmd = input(sys.ps1)
-        except:
-            cmd = input("$ ")
-
+        cmd = input(sys.ps1)
     except EOFError:
         sys.exit(1)
