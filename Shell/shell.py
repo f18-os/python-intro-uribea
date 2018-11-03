@@ -11,43 +11,41 @@ if sys.ps1 is None :
     sys.ps1 = '$ '
 cmd = input(sys.ps1)
 while cmd != "exit":
-    allcmd = cmd.split('\n')
-    for cmds in allcmd:
-        r = -1
-        w = -1
-        b = False
-        o = False
-        inp = False
-        path = ''
-        text = cmds.split("|")
-        if text[0] == '':
-            continue
-        elif text[0].lstrip().startswith('/'):
-            text[0] = text[0].lstrip()
-            #print(text[0]+'atelif')
-            bcmdp = text[0].split('/')
-            bcmd = bcmdp.pop()
-            path = "/".join(bcmdp)
-            #print(path)
+    cmd = cmd.lstrip().rstrip()
+    if not cmd == '':
+        cmds = cmd#dont modify cmd
+        r = -1#read
+        w = -1#write
+        b = False#fork
+        o = False#output redirect
+        inp = False#input redirect
+        path = ''#init path
+        text = cmds.split("|")#split at forks
 
-        elif text[0].__contains__('cd'):
+        if text[0].__contains__('cd'):  # change directory
             chnd = str.split(text[0])
             cwd = ''
-            if len(chnd)>1:
-                if chnd[1].startswith('.'):
+            if len(chnd) > 1:
+                if chnd[1].startswith('.'):  # start at this directory
                     cwd = os.getcwd()
                 path = cwd + '/' + chnd[1]
                 os.chdir(path)
                 text[:] = []
                 path = ''
-        i = len(text)
+
+        i = len(text)#number ofr forks,
         for p in range(i):
+            #if cmds == '':
+            #    continue
+
             #time.sleep(.1)
             child = text[0]
-            args = str.split(child)
-            if len(text) > 1:
+            args = str.split(child)#arguments of current working command
+
+
+            if len(text) > 1:#check if need pipe
                 r, w = os.pipe()
-                del text[0]
+                del text[0]#basically pop first command
                 b = True
 
             rc = os.fork()
@@ -57,7 +55,7 @@ while cmd != "exit":
 
             elif rc == 0:  # child
 
-                if '>' in args:
+                if '>' in args:#check for output redirect and redirect output
                     o = True
                     os.close(1)
                     i = args.index('>')
@@ -67,7 +65,7 @@ while cmd != "exit":
                     fd = sys.stdout.fileno()
                     os.set_inheritable(fd, True)
 
-                elif '<' in args:
+                elif '<' in args:#if input redirect redirect input
                     inp = True
                     os.close(0)
                     i = args.index('<')
@@ -77,19 +75,21 @@ while cmd != "exit":
                     fd = sys.stdin.fileno()
                     os.set_inheritable(fd, True)
 
-                if b and not child in text[0] and not o:
+                if b and not child in text[0] and not o :#check if fork exists and not output redirection
                     os.close(r)
                     fd = sys.stdout.fileno()
                     os.dup2(w,fd)
-                elif b and child in text and text.index(child)==0 and not inp:
+
+                elif b and child in text and text.index(child)==0 and not inp:#check if fork and not input redirection
                     os.close(w)
                     fd = sys.stdin.fileno()
                     os.dup2(r,fd)
-                if len(path) > 0 and path.startswith('/'):
-                    #print(path +"atpath"+bcmd)
-                    program = "%s/%s" % (path, bcmd)
+
+                if child.startswith('/'):#execute command with fullpathname
+
+                    program = (args[0])#"%s/%s" %
+
                     try:
-                        #print(program)
                         os.execve(program, args, os.environ)
                     except FileNotFoundError:  # ...expected
                         pass  # ...fail quietly
@@ -98,7 +98,6 @@ while cmd != "exit":
                 else:
                     for dire in re.split(":", os.environ['PATH']):  # try each directory in the path
                         program = "%s/%s" % (dire, args[0])
-                        #print(program + 'at fir')
                         try:
                             os.execve(program, args, os.environ)  # try to exec program
                         except FileNotFoundError:  # ...expected
@@ -107,7 +106,8 @@ while cmd != "exit":
                     sys.exit(1)  # terminate with error
 
         for p in range(i):
-            childPidCode = os.wait()
+            if not cmd.rstrip().endswith('&'):#if not background
+                childPidCode = os.wait()
             try:
                 os.close(r)
                 os.close(w)
